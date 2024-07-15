@@ -22,8 +22,12 @@ const initialFriends = [
 ];
 function App() {
 	const [showAddFriend, setshowAddFriend] = useState(false);
-	const [friendsArr, setFriendArr] = useState(initialFriends);
 	const [selectedFriend, setSelectedFriend] = useState(null);
+	const [friendsArr, setFriendArr] = useState(initialFriends);
+
+	const handleShowAddFriend = () => {
+		setshowAddFriend((show) => !show);
+	};
 
 	const handleFriendSelection = (friend) => {
 		setSelectedFriend((curr) => (curr?.id === friend.id ? null : friend));
@@ -34,9 +38,19 @@ function App() {
 		setFriendArr((friends) => [...friends, newFriend]);
 		setshowAddFriend(false);
 	};
-	const handleShowAddFriend = () => {
-		setshowAddFriend((show) => !show);
+
+	const handleSplitBill = (value) => {
+		setFriendArr((friends) =>
+			friends.map((friend) => {
+				if (friend.id === selectedFriend.id) {
+					return { ...friend, balance: friend.balance + value };
+				}
+				return friend;
+			})
+		);
+		setSelectedFriend(null);
 	};
+
 	return (
 		<div className="app">
 			<div className="sidebar">
@@ -53,7 +67,10 @@ function App() {
 				</Button>
 			</div>
 			{selectedFriend && (
-				<FormSplitBill selectedFriend={selectedFriend} />
+				<FormSplitBill
+					selectedFriend={selectedFriend}
+					onSplitBill={handleSplitBill}
+				/>
 			)}
 		</div>
 	);
@@ -150,18 +167,51 @@ function FormAddFriend({ onAddFriend }) {
 	);
 }
 
-function FormSplitBill({ selectedFriend }) {
+function FormSplitBill({ selectedFriend, onSplitBill }) {
+	const [bill, SetBill] = useState('');
+	const [paidByUser, SetPaidByUser] = useState('');
+
+	const paidByFriend = bill ? bill - paidByUser : '';
+
+	const [whoIsPaying, SetWhoIsPaying] = useState('user');
+
+	const handleSetBill = (e) => {
+		const value = Number(e.target.value);
+		if (value >= 0) SetBill(value);
+		else alert('Please enter a positive number');
+	};
+	const handleSetPaidByUser = (e) => {
+		const value = Number(e.target.value);
+		if (value >= 0 && value <= bill) SetPaidByUser(value);
+		else
+			alert(
+				'Please enter a positive number and less than or equal to the bill'
+			);
+	};
+
+	const handleSubmitSplitBill = (e) => {
+		e.preventDefault();
+
+		if (!bill || !paidByUser)
+			return alert('Please enter both bill and paid by user values');
+		onSplitBill(whoIsPaying === 'user' ? paidByFriend : -paidByUser);
+	};
 	return (
-		<form className="form-split-bill">
+		<form className="form-split-bill" onSubmit={handleSubmitSplitBill}>
 			<h2>Split a bill with {selectedFriend.name}</h2>
 			<label>💸 Bill Value</label>
-			<input type="text"></input>
+			<input type="text" value={bill} onInput={handleSetBill}></input>
 			<label>💰 Your Expense</label>
-			<input type="text"></input>
+			<input
+				type="text"
+				value={paidByUser}
+				onInput={handleSetPaidByUser}></input>
 			<label>👬 {selectedFriend.name}'s expense</label>
-			<input type="text" disabled value={0}></input>
+			<input type="text" disabled value={paidByFriend}></input>
 			<label>🤑 Who's paying the bill</label>
-			<select>
+			<select
+				value={whoIsPaying}
+				onChange={(e) => SetWhoIsPaying(e.target.value)}>
 				<option value="user">You</option>
 				<option value="friend">{selectedFriend.name}</option>
 			</select>
